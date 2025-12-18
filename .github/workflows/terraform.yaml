@@ -30,9 +30,15 @@ jobs:
         run: terraform fmt -check
       
       - name: terraform-import
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
         run: terraform import render_static_site.example srv-d51sk2tactks73a8ca9g
 
       - name: terraform-destroy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
         run : terraform destroy -auto-approve
 
       - name: Terraform Plan
