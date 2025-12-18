@@ -29,6 +29,9 @@ jobs:
       - name: Terraform Format Check
         run: terraform fmt -check
 
+      - name: terraform-destroy
+        run : terraform destroy -auto-approve
+
       - name: Terraform Plan
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
