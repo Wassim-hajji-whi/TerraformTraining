@@ -28,6 +28,9 @@ jobs:
 
       - name: Terraform Format Check
         run: terraform fmt -check
+      
+      - name: terraform-import
+        run: terraform import render_static_site.render-terraform-example-try6 srv-d51sk2tactks73a8ca9g
 
       - name: terraform-destroy
         run : terraform destroy -auto-approve
