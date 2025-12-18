@@ -1,77 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Click the Box</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
+<meta charset="UTF-8">
+<title>Dino Game</title>
+<style>
+  body {
+    margin: 0;
+    background: #f7f7f7;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-    #gameArea {
-      position: relative;
-      width: 400px;
-      height: 400px;
-      border: 2px solid #fff;
-      margin-top: 15px;
-      overflow: hidden;
-    }
+  #game {
+    position: relative;
+    width: 600px;
+    height: 200px;
+    background: #fff;
+    border: 2px solid #333;
+    overflow: hidden;
+  }
 
-    #box {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background: #4caf50;
-      cursor: pointer;
-    }
+  #dino {
+    position: absolute;
+    bottom: 0;
+    left: 50px;
+    width: 40px;
+    height: 40px;
+    background: #333;
+  }
 
-    #score {
-      font-size: 1.2rem;
-    }
-  </style>
+  #cactus {
+    position: absolute;
+    bottom: 0;
+    right: -20px;
+    width: 20px;
+    height: 50px;
+    background: #228b22;
+  }
+
+  #score {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 14px;
+  }
+
+  .jump {
+    animation: jump 0.45s linear;
+  }
+
+  @keyframes jump {
+    0% { bottom: 0; }
+    50% { bottom: 90px; }
+    100% { bottom: 0; }
+  }
+</style>
 </head>
 <body>
 
-<h1>🎮 Click the Box</h1>
-<div id="score">Score: 0</div>
-
-<div id="gameArea">
-  <div id="box"></div>
+<div id="game">
+  <div id="dino"></div>
+  <div id="cactus"></div>
+  <div id="score">Score: 0</div>
 </div>
 
 <script>
-  const box = document.getElementById("box");
-  const gameArea = document.getElementById("gameArea");
+  const dino = document.getElementById("dino");
+  const cactus = document.getElementById("cactus");
   const scoreEl = document.getElementById("score");
 
   let score = 0;
+  let speed = 5;
+  let gameOver = false;
 
-  function moveBox() {
-    const maxX = gameArea.clientWidth - box.clientWidth;
-    const maxY = gameArea.clientHeight - box.clientHeight;
-
-    const x = Math.random() * maxX;
-    const y = Math.random() * maxY;
-
-    box.style.left = x + "px";
-    box.style.top = y + "px";
+  function jump() {
+    if (!dino.classList.contains("jump")) {
+      dino.classList.add("jump");
+      setTimeout(() => dino.classList.remove("jump"), 450);
+    }
   }
 
-  box.addEventListener("click", () => {
-    score++;
-    scoreEl.textContent = "Score: " + score;
-    moveBox();
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space") jump();
   });
 
-  moveBox();
+  document.addEventListener("click", jump);
+
+  function gameLoop() {
+    if (gameOver) return;
+
+    let cactusLeft = cactus.offsetLeft - speed;
+    cactus.style.left = cactusLeft + "px";
+
+    if (cactusLeft < -20) {
+      cactus.style.left = "600px";
+      score++;
+      scoreEl.textContent = "Score: " + score;
+      if (score % 5 === 0) speed += 0.5;
+    }
+
+    const dinoBottom = parseInt(getComputedStyle(dino).bottom);
+    const dinoLeft = dino.offsetLeft;
+    const cactusBottom = cactus.offsetHeight;
+    const cactusLeftPos = cactus.offsetLeft;
+
+    if (
+      cactusLeftPos < dinoLeft + 40 &&
+      cactusLeftPos > dinoLeft &&
+      dinoBottom < cactusBottom
+    ) {
+      gameOver = true;
+      alert("Game Over! Score: " + score);
+      location.reload();
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
 </script>
 
 </body>
