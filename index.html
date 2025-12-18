@@ -2,150 +2,211 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dino Game Enhanced</title>
+<title>Enhanced Tic-Tac-Toe</title>
 <style>
   body {
-    margin: 0;
-    font-family: monospace;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: #f7f7f7;
-    transition: background 0.5s;
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+  }
+
+  h1 {
+    margin-bottom: 10px;
   }
 
   #game {
-    position: relative;
-    width: 600px;
-    height: 200px;
-    border: 2px solid #333;
-    overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 5px;
+  }
+
+  .cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5rem;
     background: #fff;
+    border: 2px solid #333;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
   }
 
-  #dino {
-    position: absolute;
-    bottom: 0;
-    left: 50px;
-    width: 40px;
-    height: 40px;
-    background: url('https://i.imgur.com/OZ0K0Yb.png') no-repeat center/contain;
+  .cell:hover {
+    background: #e0e0e0;
   }
 
-  .cactus {
-    position: absolute;
-    bottom: 0;
-    width: 20px;
-    background: url('https://i.imgur.com/MBcOclQ.png') no-repeat center/contain;
+  .cell.x {
+    color: #d32f2f;
+    transform: scale(1.1);
   }
 
-  #score {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    font-size: 14px;
+  .cell.o {
+    color: #1976d2;
+    transform: scale(1.1);
   }
 
-  .jump {
-    animation: jump 0.45s linear;
+  .win {
+    background: #ffeb3b !important;
   }
 
-  @keyframes jump {
-    0% { bottom: 0; }
-    50% { bottom: 90px; }
-    100% { bottom: 0; }
+  #info {
+    margin-top: 15px;
+    text-align: center;
+  }
+
+  #info div {
+    margin: 5px 0;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  #mode {
+    margin-bottom: 10px;
   }
 </style>
 </head>
 <body>
 
-<div id="game">
-  <div id="dino"></div>
-  <div id="score">Score: 0</div>
+<h1>Enhanced Tic-Tac-Toe</h1>
+
+<div id="mode">
+  <label>
+    <input type="radio" name="mode" value="pvp" checked> Player vs Player
+  </label>
+  <label>
+    <input type="radio" name="mode" value="cpu"> Player vs CPU
+  </label>
 </div>
 
-<audio id="jumpSound" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3"></audio>
-<audio id="gameOverSound" src="https://freesound.org/data/previews/331/331912_3248244-lq.mp3"></audio>
+<div id="game"></div>
+
+<div id="info">
+  <div id="message">Player X's Turn</div>
+  <div>Score: X - <span id="scoreX">0</span> | O - <span id="scoreO">0</span></div>
+</div>
+
+<button onclick="resetGame()">Restart Game</button>
 
 <script>
   const game = document.getElementById("game");
-  const dino = document.getElementById("dino");
-  const scoreEl = document.getElementById("score");
-  const jumpSound = document.getElementById("jumpSound");
-  const gameOverSound = document.getElementById("gameOverSound");
+  const message = document.getElementById("message");
+  const scoreXEl = document.getElementById("scoreX");
+  const scoreOEl = document.getElementById("scoreO");
+  const modeInputs = document.getElementsByName("mode");
 
-  let score = 0;
-  let speed = 5;
+  let board = ["", "", "", "", "", "", "", "", ""];
+  let currentPlayer = "X";
   let gameOver = false;
-  let obstacles = [];
+  let score = { X: 0, O: 0 };
+  let mode = "pvp";
 
-  // Create multiple obstacles
-  function createObstacle() {
-    const cactus = document.createElement("div");
-    cactus.classList.add("cactus");
-    cactus.style.height = Math.random() > 0.5 ? "50px" : "30px";
-    cactus.style.right = "-20px";
-    game.appendChild(cactus);
-    obstacles.push(cactus);
+  const winCombos = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  function createBoard() {
+    game.innerHTML = "";
+    board.forEach((cell, index) => {
+      const div = document.createElement("div");
+      div.classList.add("cell");
+      div.dataset.index = index;
+      div.addEventListener("click", handleMove);
+      div.textContent = cell;
+      if(cell) div.classList.add(cell.toLowerCase());
+      game.appendChild(div);
+    });
   }
 
-  setInterval(() => {
-    if (!gameOver) createObstacle();
-  }, 2000);
-
-  function jump() {
-    if (!dino.classList.contains("jump")) {
-      dino.classList.add("jump");
-      jumpSound.play();
-      setTimeout(() => dino.classList.remove("jump"), 450);
+  function handleMove(e) {
+    const index = e.target.dataset.index;
+    if (board[index] === "" && !gameOver) {
+      makeMove(index, currentPlayer);
+      if(mode === "cpu" && !gameOver && currentPlayer === "O") {
+        setTimeout(cpuMove, 400);
+      }
     }
   }
 
-  document.addEventListener("keydown", e => { if(e.code==="Space") jump(); });
-  document.addEventListener("click", jump);
-  document.addEventListener("touchstart", jump);
-
-  // Day/Night mode
-  setInterval(() => {
-    document.body.style.background = (score % 20 < 10) ? "#f7f7f7" : "#222";
-  }, 500);
-
-  function gameLoop() {
-    if (gameOver) return;
-
-    obstacles.forEach((cactus, index) => {
-      let right = parseFloat(cactus.style.right);
-      right += speed;
-      cactus.style.right = right + "px";
-
-      const cactusLeft = game.clientWidth - right - parseInt(cactus.style.width);
-      const dinoBottom = parseInt(getComputedStyle(dino).bottom);
-
-      if (
-        cactusLeft < dino.offsetLeft + 40 &&
-        cactusLeft + parseInt(cactus.style.width) > dino.offsetLeft &&
-        dinoBottom < parseInt(cactus.style.height)
-      ) {
-        gameOver = true;
-        gameOverSound.play();
-        alert("Game Over! Score: " + score);
-        location.reload();
-      }
-
-      if (cactusLeft < -20) {
-        cactus.remove();
-        obstacles.splice(index, 1);
-        score++;
-        scoreEl.textContent = "Score: " + score;
-        if (score % 5 === 0) speed += 0.5;
-      }
-    });
-
-    requestAnimationFrame(gameLoop);
+  function makeMove(index, player) {
+    board[index] = player;
+    updateCell(index, player);
+    if (checkWin(player)) {
+      message.textContent = `Player ${player} Wins!`;
+      highlightWin(player);
+      score[player]++;
+      updateScore();
+      gameOver = true;
+    } else if (board.every(cell => cell !== "")) {
+      message.textContent = "It's a Draw!";
+      gameOver = true;
+    } else {
+      currentPlayer = player === "X" ? "O" : "X";
+      message.textContent = `Player ${currentPlayer}'s Turn`;
+    }
   }
 
-  gameLoop();
+  function updateCell(index, player) {
+    const cell = game.querySelector(`.cell[data-index='${index}']`);
+    cell.textContent = player;
+    cell.classList.add(player.toLowerCase());
+  }
+
+  function checkWin(player) {
+    return winCombos.some(combo => combo.every(i => board[i] === player));
+  }
+
+  function highlightWin(player) {
+    winCombos.forEach(combo => {
+      if(combo.every(i => board[i] === player)) {
+        combo.forEach(i => {
+          game.querySelector(`.cell[data-index='${i}']`).classList.add("win");
+        });
+      }
+    });
+  }
+
+  function updateScore() {
+    scoreXEl.textContent = score.X;
+    scoreOEl.textContent = score.O;
+  }
+
+  function resetGame() {
+    board = ["", "", "", "", "", "", "", "", ""];
+    currentPlayer = "X";
+    gameOver = false;
+    message.textContent = `Player ${currentPlayer}'s Turn`;
+    createBoard();
+  }
+
+  function cpuMove() {
+    const emptyIndexes = board.map((val,i)=>val===""?i:null).filter(v=>v!==null);
+    if(emptyIndexes.length===0) return;
+    const randomIndex = emptyIndexes[Math.floor(Math.random()*emptyIndexes.length)];
+    makeMove(randomIndex, "O");
+  }
+
+  // Listen for mode changes
+  modeInputs.forEach(input => {
+    input.addEventListener("change", () => {
+      mode = document.querySelector('input[name="mode"]:checked').value;
+      resetGame();
+    });
+  });
+
+  // Initialize
+  createBoard();
 </script>
 
 </body>
